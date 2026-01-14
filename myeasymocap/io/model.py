@@ -23,7 +23,7 @@ class SMPLLoader:
         assert os.path.exists(model_path), f'{model_path} not exists'
         if not os.path.exists(regressor_path):
             if regressor_path.endswith('J_regressor_body25.npy'):
-                url = 'https://github.com/zju3dv/EasyMocap/raw/master/data/smplx/J_regressor_body25.npy'
+                url = 'https://github.com/RubisetCie/easy-mocap/raw/master/data/smplx/J_regressor_body25.npy'
                 os.makedirs(os.path.dirname(regressor_path), exist_ok=True)
                 cmd = 'wget {} -O {}'.format(url, regressor_path)
                 os.system(cmd)
@@ -60,7 +60,7 @@ class MANOLoader:
         log('[MANO] Using keypoints regressor `{}`'.format(regressor_path))
         assert os.path.exists(model_path), f'{model_path} not exists, Please download it from `mano.is.tue.mpg.de`'
         if not os.path.exists(regressor_path) and regressor_path.endswith('J_regressor_mano_LEFT.txt'):
-            url = 'https://raw.githubusercontent.com/zju3dv/EasyMocap/master/data/smplx/J_regressor_mano_LEFT.txt'
+            url = 'https://raw.githubusercontent.com/RubisetCie/easy-mocap/master/data/smplx/J_regressor_mano_LEFT.txt'
             os.makedirs(os.path.dirname(regressor_path), exist_ok=True)
             cmd = 'wget {} -O {}'.format(url, regressor_path)
             os.system(cmd)
