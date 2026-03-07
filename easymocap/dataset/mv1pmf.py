@@ -44,7 +44,7 @@ class MV1PMF(MVBase):
         for key in cameras.keys():
             cameras[key] = np.stack([self.cameras[cam][key] for cam in sub_vis])
         images = [images[self.cams.index(cam)] for cam in sub_vis]
-        self.writer.vis_smpl(render_data, images, cameras, outname, add_back=add_back)
+        self.writer.vis_smpl(render_data, images, cameras, outname, add_back=add_back, nf=nf)
     
     def vis_detections(self, images, annots, nf, to_img=True, sub_vis=[]):
         lDetections = []
@@ -66,7 +66,7 @@ class MV1PMF(MVBase):
                 'bbox': get_bbox_from_pose(kpts_repro[nv], images[nv])
             }
             lDetections.append([det])
-        return super().vis_detections(images, lDetections, nf, mode=mode, sub_vis=sub_vis)
+        return super().vis_detections(images, lDetections, nf, mode=mode, sub_vis=sub_vis, use_limb_color=True)
 
     def __getitem__(self, index: int):
         images, annots_all = super().__getitem__(index)

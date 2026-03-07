@@ -7,10 +7,12 @@
 '''
 import numpy as np
 import torch
-from .lbfgs import LBFGS 
+import cv2
+from .lbfgs import LBFGS
 from .optimize import FittingMonitor, grad_require, FittingLog
 from .lossfactory import LossSmoothBodyMean, LossRegPoses
-from .lossfactory import LossKeypoints3D, LossKeypointsMV2D, LossSmoothBody, LossRegPosesZero, LossInit, LossSmoothPoses
+from .lossfactory import LossKeypoints3D, LossKeypointsMV2D, LossSmoothBody, LossRegPosesZero, LossInit, LossSmoothPoses, LossSmoothRh
+from .operation import batch_rodrigues
 
 def optimizeShape(body_model, body_params, keypoints3d,
     weight_loss, kintree, cfg=None):
@@ -82,9 +84,53 @@ def optimizeShape(body_model, body_params, keypoints3d,
 N_BODY = 25
 N_HAND = 21
 
+def _closest_rotation_svd(M):
+    """Project a 3x3 matrix to the nearest rotation matrix via SVD.
+
+    Works for both numpy arrays and torch tensors.
+    """
+    if isinstance(M, torch.Tensor):
+        U, S, Vh = torch.linalg.svd(M)
+        R = U @ Vh
+        # Ensure proper rotation (det=+1), not reflection
+        if torch.det(R) < 0:
+            U[:, -1] *= -1
+            R = U @ Vh
+        return R
+    else:
+        U, S, Vt = np.linalg.svd(M)
+        R = U @ Vt
+        if np.linalg.det(R) < 0:
+            U[:, -1] *= -1
+            R = U @ Vt
+        return R
+
+def _rotmat_to_aa(R):
+    """Convert a 3x3 rotation matrix to axis-angle (3,).
+
+    Works for both numpy arrays and torch tensors.
+    """
+    if isinstance(R, torch.Tensor):
+        R_np = R.detach().cpu().numpy()
+        aa, _ = cv2.Rodrigues(R_np)
+        return torch.tensor(aa.flatten(), dtype=R.dtype, device=R.device)
+    else:
+        aa, _ = cv2.Rodrigues(R)
+        return aa.flatten()
+
 def interp(left_value, right_value, weight, key='poses'):
     if key == 'Rh':
-        return left_value * weight + right_value * (1 - weight)
+        # Interpolate in rotation matrix space to avoid axis-angle wrapping
+        if isinstance(left_value, torch.Tensor):
+            R_left = batch_rodrigues(left_value.unsqueeze(0))[0]  # (3, 3)
+            R_right = batch_rodrigues(right_value.unsqueeze(0))[0]
+        else:
+            R_left, _ = cv2.Rodrigues(left_value)
+            R_right, _ = cv2.Rodrigues(right_value)
+        # Linear interpolation of rotation matrices + SVD projection
+        R_interp = R_left * weight + R_right * (1 - weight)
+        R_interp = _closest_rotation_svd(R_interp)
+        return _rotmat_to_aa(R_interp)
     elif key == 'Th':
         return left_value * weight + right_value * (1 - weight)
     elif key == 'poses':
@@ -277,6 +323,7 @@ def optimizePose3D(body_model, params, keypoints3d, weight, cfg):
         'k3d': LossKeypoints3D(keypoints3d, cfg).body,
         'smooth_body': LossSmoothBodyMean(cfg).body,
         'smooth_poses': LossSmoothPoses(1, nFrames, cfg).poses,
+        'smooth_Rh': LossSmoothRh(1, nFrames, cfg).__call__,
         'reg_poses': LossRegPoses(cfg).reg_body,
         'init_poses': LossInit(params, cfg).init_poses,
     }
@@ -328,6 +375,7 @@ def optimizePose2D(body_model, params, bboxes, keypoints2d, Pall, weight, cfg):
         'smooth_body': LossSmoothBodyMean(cfg).body,
         'init_poses': LossInit(params, cfg).init_poses,
         'smooth_poses': LossSmoothPoses(nViews, nFrames, cfg).poses,
+        'smooth_Rh': LossSmoothRh(nViews, nFrames, cfg).__call__,
         'reg_poses': LossRegPoses(cfg).reg_body,
     }
     if body_model.model_type != 'mano':

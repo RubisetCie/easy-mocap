@@ -149,7 +149,10 @@ def plot_keypoints(img, points, pid, config, vis_conf=False, use_limb_color=True
         c = points[i][-1]
         if c > 0.01:
             text_size = img.shape[0]/1000
-            col = get_rgb(pid)
+            if use_limb_color and 'joint_colors' in config:
+                col = get_rgb(config['joint_colors'][i])
+            else:
+                col = get_rgb(pid)
             radius = int(lw/1.5)
             if i > 25 and config['nJoints'] != 42:
                 radius = max(int(radius/4), 1)

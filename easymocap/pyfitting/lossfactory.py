@@ -218,6 +218,36 @@ class LossSmoothPoses:
     def __str__(self) -> str:
         return 'Loss function for Smooth of Body'
 
+class LossSmoothRh:
+    """Smooth loss for root rotation (Rh) in rotation matrix space.
+
+    Converts axis-angle Rh to rotation matrices via batch_rodrigues,
+    then computes mean-interpolation smoothness on 3x3 matrices.
+    This avoids axis-angle wrapping artifacts at +-pi boundaries.
+    """
+    def __init__(self, nViews, nFrames, cfg=None) -> None:
+        self.nViews = nViews
+        self.nFrames = nFrames
+        self.cfg = cfg
+
+    def __call__(self, Rh, **kwargs):
+        "smooth root rotation"
+        if self.nFrames <= 2:
+            return torch.tensor(0.0, device=Rh.device, requires_grad=True)
+        loss = 0
+        for nv in range(self.nViews):
+            rh = Rh[nv*self.nFrames:(nv+1)*self.nFrames]
+            # Convert axis-angle to rotation matrices: (nFrames, 3, 3)
+            rot = batch_rodrigues(rh)
+            # Mean-interpolation smoothing on rotation matrices
+            rot_interp = rot.clone().detach()
+            rot_interp[1:-1] = (rot_interp[1:-1] + rot_interp[:-2] + rot_interp[2:]) / 3
+            loss += funcl2(rot[1:-1] - rot_interp[1:-1])
+        return loss / (self.nFrames - 2) / self.nViews
+
+    def __str__(self) -> str:
+        return 'Loss function for Smooth of Rh (rotation matrix space)'
+
 class LossSmoothBodyMulti(LossSmoothBody):
     def __init__(self, dimGroups, cfg) -> None:
         super().__init__(cfg)

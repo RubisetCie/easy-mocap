@@ -15,7 +15,14 @@ def multi_stage_optimize(body_model, params, kp3ds, kp2ds=None, bboxes=None, Pal
     with Timer('Optimize global RT'):
         cfg.OPT_R = True
         cfg.OPT_T = True
+        # Disable smooth_body during global RT optimization: when only Rh/Th
+        # are optimized (body pose is zero), smooth_body penalizes natural
+        # inter-frame joint movement in world coordinates, which conflicts
+        # with the k3d data term and causes incorrect global rotation.
+        saved_smooth_body = weight.get('smooth_body', 0.)
+        weight['smooth_body'] = 0.
         params = optimizePose3D(body_model, params, kp3ds, weight=weight, cfg=cfg)
+        weight['smooth_body'] = saved_smooth_body
         # params = optimizePose(body_model, params, kp3ds, weight_loss=weight, kintree=config['kintree'], cfg=cfg)
     with Timer('Optimize 3D Pose/{} frames'.format(kp3ds.shape[0])):
         cfg.OPT_POSE = True
@@ -44,7 +51,10 @@ def multi_stage_optimize2d(body_model, params, kp2ds, bboxes, Pall, weight={}, a
     with Timer('Optimize global RT'):
         cfg.OPT_R = True
         cfg.OPT_T = True
+        saved_smooth_body = weight.get('smooth_body', 0.)
+        weight['smooth_body'] = 0.
         params = optimizePose2D(body_model, params, bboxes, kp2ds, Pall, weight=weight, cfg=cfg)
+        weight['smooth_body'] = saved_smooth_body
     with Timer('Optimize 2D Pose/{} frames'.format(kp2ds.shape[0])):
         cfg.OPT_POSE = True
         cfg.OPT_SHAPE = True

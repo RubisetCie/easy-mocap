@@ -27,12 +27,26 @@ class FileWriter:
             print(cfg, file=open(join(output_path, 'exp.yml'), 'w'))
         self.save_origin = False
         self.config = config
-    
+
+    @staticmethod
+    def _put_frame_number(img, nf):
+        """Draw frame number on the top-left corner of the image."""
+        H = img.shape[0]
+        font_scale = max(H / 1000, 0.5)
+        thickness = max(int(H / 500), 1)
+        text = 'Frame {:06d}'.format(nf)
+        # Black outline for readability
+        cv2.putText(img, text, (10, int(30 * font_scale) + 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0, 0, 0), thickness + 2)
+        # White text
+        cv2.putText(img, text, (10, int(30 * font_scale) + 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, font_scale, (255, 255, 255), thickness)
+
     def write_keypoints2d(self, ):
         pass
 
     def vis_keypoints2d_mv(self, images, lDetections, outname=None,
-        vis_id=True):
+        vis_id=True, use_limb_color=False, nf=None):
         mkout(outname)
         images_vis = []
         for nv, image in enumerate(images):
@@ -48,15 +62,15 @@ class FileWriter:
                 else:
                     bbox = det['bbox']
                 plot_bbox(img, bbox, pid=pid, vis_id=vis_id)
-                plot_keypoints(img, keypoints, pid=pid, config=self.config, use_limb_color=False, lw=2)
+                plot_keypoints(img, keypoints, pid=pid, config=self.config, use_limb_color=use_limb_color, lw=2)
             images_vis.append(img)
         if len(images_vis) > 1:
             images_vis = merge(images_vis, resize=not self.save_origin)
         else:
             images_vis = images_vis[0]
+        if nf is not None:
+            self._put_frame_number(images_vis, nf)
         if outname is not None:
-            # savename = join(self.output_dict[key], '{:06d}.jpg'.format(nf))
-            # savename = join(self.output_dict[key], '{:06d}.jpg'.format(nf))
             cv2.imwrite(outname, images_vis)
         return images_vis
     
@@ -67,12 +81,14 @@ class FileWriter:
         # visualize the repro of keypoints3d
         import ipdb; ipdb.set_trace()
     
-    def vis_smpl(self, render_data, images, cameras, outname, add_back):
+    def vis_smpl(self, render_data, images, cameras, outname, add_back, nf=None):
         mkout(outname)
         from ..visualize.renderer import Renderer
         render = Renderer(height=1024, width=1024, faces=None)
         render_results = render.render(render_data, cameras, images, add_back=add_back)
         image_vis = merge(render_results, resize=not self.save_origin)
+        if nf is not None:
+            self._put_frame_number(image_vis, nf)
         cv2.imwrite(outname, image_vis)
         return image_vis
 

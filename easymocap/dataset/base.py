@@ -506,13 +506,13 @@ class MVBase:
     def __len__(self) -> int:
         return self.nFrames
     
-    def vis_detections(self, images, lDetections, nf, mode='detec', to_img=True, sub_vis=[]):
+    def vis_detections(self, images, lDetections, nf, mode='detec', to_img=True, sub_vis=[], use_limb_color=False):
         outname = join(self.out, mode, '{:06d}.jpg'.format(nf))
         if len(sub_vis) != 0:
             valid_idx = [self.cams.index(i) for i in sub_vis]
             images = [images[i] for i in valid_idx]
             lDetections = [lDetections[i] for i in valid_idx]
-        return self.writer.vis_keypoints2d_mv(images, lDetections, outname=outname, vis_id=True)
+        return self.writer.vis_keypoints2d_mv(images, lDetections, outname=outname, vis_id=True, use_limb_color=use_limb_color, nf=nf)
     
     def basename(self, nf):
         return '{:06d}'.format(nf)

@@ -186,6 +186,33 @@ CONFIG['body25'] = {'nJoints': 25, 'kintree':
     [24, 11]], 
     'joint_names': [
         "Nose", "Neck", "RShoulder", "RElbow", "RWrist", "LShoulder", "LElbow", "LWrist", "MidHip", "RHip","RKnee","RAnkle","LHip","LKnee","LAnkle","REye","LEye","REar","LEar","LBigToe","LSmallToe","LHeel","RBigToe","RSmallToe","RHeel"]}
+CONFIG['body25']['joint_colors'] = [
+    'k',  # 0  Nose     (center)
+    'k',  # 1  Neck     (center)
+    'r',  # 2  RShoulder(right)
+    'r',  # 3  RElbow   (right)
+    'r',  # 4  RWrist   (right)
+    'b',  # 5  LShoulder(left)
+    'b',  # 6  LElbow   (left)
+    'b',  # 7  LWrist   (left)
+    'k',  # 8  MidHip   (center)
+    'r',  # 9  RHip     (right)
+    'r',  # 10 RKnee    (right)
+    'r',  # 11 RAnkle   (right)
+    'b',  # 12 LHip     (left)
+    'b',  # 13 LKnee    (left)
+    'b',  # 14 LAnkle   (left)
+    'r',  # 15 REye     (right)
+    'b',  # 16 LEye     (left)
+    'r',  # 17 REar     (right)
+    'b',  # 18 LEar     (left)
+    'b',  # 19 LBigToe  (left)
+    'b',  # 20 LSmallToe(left)
+    'b',  # 21 LHeel    (left)
+    'r',  # 22 RBigToe  (right)
+    'r',  # 23 RSmallToe(right)
+    'r',  # 24 RHeel    (right)
+]
 CONFIG['body25']['kintree_order'] = [
     [1, 8], # 躯干放在最前面
     [1, 2],
@@ -305,6 +332,7 @@ CONFIG['body15'] = {'nJoints': 15, 'root': 8,
     [13, 12],
     [14, 13]], 'root': 8,}
 CONFIG['body15']['joint_names'] = CONFIG['body25']['joint_names'][:15]
+CONFIG['body15']['joint_colors'] = CONFIG['body25']['joint_colors'][:15]
 CONFIG['body15']['skeleton'] = {key: val for key, val in CONFIG['body25']['skeleton'].items() if key[0] < 15 and key[1] < 15}
 CONFIG['body15']['kintree_order'] = CONFIG['body25']['kintree_order'][:14]
 CONFIG['body15']['colors'] = CONFIG['body25']['colors'][:15]

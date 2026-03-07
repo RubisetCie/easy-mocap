@@ -10,8 +10,25 @@ from easymocap.smplmodel import check_keypoints, load_model, select_nf
 from easymocap.mytools import simple_recon_person, Timer, projectN3
 from easymocap.pipeline import smpl_from_keypoints3d2d
 import os
+import subprocess
 from os.path import join
 import numpy as np
+
+def compose_video(img_dir, video_path, fps=30):
+    """Compose a directory of numbered JPG frames into an MP4 video."""
+    if not os.path.isdir(img_dir):
+        return
+    pattern = join(img_dir, '%06d.jpg')
+    cmd = [
+        'ffmpeg', '-y',
+        '-framerate', str(fps),
+        '-i', pattern,
+        '-c:v', 'libx264',
+        '-pix_fmt', 'yuv420p',
+        video_path
+    ]
+    print('Composing video: {}'.format(video_path))
+    subprocess.run(cmd, check=True)
 
 def check_repro_error(keypoints3d, kpts_repro, keypoints2d, P, MAX_REPRO_ERROR):
     square_diff = (keypoints2d[:, :, :2] - kpts_repro[:, :, :2])**2 
@@ -48,6 +65,8 @@ def mv1pmf_skel(dataset, check_repro=True, args=None):
         kp3ds = smooth_skeleton(kp3ds, args.smooth3d)
     for nf in tqdm(range(len(kp3ds)), desc='dump'):
         dataset.write_keypoints3d(kp3ds[nf], nf+start)
+    if args.vis_repro:
+        compose_video(join(args.out, 'repro'), join(args.out, 'repro.mp4'))
 
 def mv1pmf_smpl(dataset, args, weight_pose=None, weight_shape=None):
     dataset.skel_path = args.skel
@@ -90,6 +109,11 @@ def mv1pmf_smpl(dataset, args, weight_pose=None, weight_shape=None):
             keypoints = body_model(return_verts=False, return_tensor=False, **param)[0]
             kpts_repro = projectN3(keypoints, dataset.Pall)
             dataset.vis_repro(images, kpts_repro, nf=nf, sub_vis=args.sub_vis, mode='repro_smpl')
+    # compose rendered images into video
+    if args.vis_smpl:
+        compose_video(join(args.out, 'smpl'), join(args.out, 'smpl.mp4'))
+    if args.vis_repro:
+        compose_video(join(args.out, 'repro_smpl'), join(args.out, 'repro_smpl.mp4'))
 
 if __name__ == "__main__":
     from easymocap.mytools import load_parser, parse_parser
